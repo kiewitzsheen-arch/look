@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Security Notice</title>
+<style>
+  :root { --red: #ff2a2a; }
+  * { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; width: 100%; height: 100%; background: #000; color: var(--red); font-family: Arial, Helvetica, sans-serif; overflow: hidden; }
+  main { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; background: #000; }
+  .panel { max-width: 720px; }
+  .hidden { display: none !important; }
+  /* 1. the warning: the whole screen strobes red and black, the text flashes */
+  #warning { animation: strobe .5s steps(2, end) infinite; }
+  #warning .big { font-size: clamp(2.2rem, 10vw, 5rem); font-weight: 900; letter-spacing: .04em; animation: flash .25s steps(2, end) infinite; }
+  #warning .sub { color: #fff; font-size: clamp(1.1rem, 4.5vw, 1.6rem); margin-top: 22px; font-weight: 700; }
+  #warning .mono { color: #ffb0b0; font: 700 clamp(.9rem, 3.5vw, 1.1rem)/1.5 Consolas, monospace; margin-top: 18px; white-space: pre-line; }
+  @keyframes strobe { 0%, 49% { background: #000; } 50%, 100% { background: #3a0000; } }
+  @keyframes flash { 0%, 49% { opacity: 1; } 50%, 100% { opacity: .08; } }
+  /* 2. the blackout: nothing on screen, no cursor */
+  #black { background: #000; cursor: none; }
+  /* 3. the reveal */
+  #reveal { color: #fff; }
+  #reveal h1 { color: #55f18c; font-size: clamp(2.4rem, 10vw, 5rem); margin: 0 0 12px; }
+  #reveal h2 { color: #ffd23f; font-size: clamp(1.2rem, 5vw, 2rem); margin: 0 0 18px; }
+  #reveal p { font-size: clamp(1rem, 4vw, 1.3rem); line-height: 1.5; margin: 8px 0; }
+  #reveal .small { color: #aaa; font-size: .95rem; margin-top: 26px; }
+</style>
+</head>
+<body>
+<main id="warning">
+  <div class="panel">
+    <div class="big">⚠ I WARNED YOU ⚠</div>
+    <div class="sub">YOUR DEVICE IS INFECTED</div>
+    <div class="mono" id="log"></div>
+  </div>
+</main>
+<main id="black" class="hidden" aria-hidden="true"></main>
+<main id="reveal" class="hidden">
+  <div class="panel">
+    <h1>😂 GOT YA!</h1>
+    <h2>It's a prank. Nothing happened to your device.</h2>
+    <p>No files were touched, nothing was scanned and no information was taken.</p>
+    <p><strong>But this is exactly how real scams start.</strong><br>Don't click on every link people send you.</p>
+    <p class="small">You can close this page now.</p>
+  </div>
+</main>
+<script>
+(() => {
+  "use strict";
+  const WARN_MS = 3500;    // flashing warning
+  const BLACK_MS = 5000;   // dead black screen
+  const CONFIRM_LEAVE = false;   // true: the browser asks "Leave site?" if they try to close during the prank (meaner; off by default)
+
+  const show = id => { for (const el of document.querySelectorAll("main")) el.classList.toggle("hidden", el.id !== id); };
+  const log = document.getElementById("log");
+  const lines = ["> connecting...", "> access granted", "> locating photos", "> locating contacts", "> uploading..."];
+  lines.forEach((l, i) => setTimeout(() => { log.textContent += (i ? "\n" : "") + l; }, 500 + i * 550));
+
+  // nothing to click, and clicks, taps and keys do nothing while it runs
+  let running = true;
+  const swallow = e => { if (running) { e.preventDefault(); e.stopPropagation(); } };
+  for (const ev of ["click", "dblclick", "mousedown", "mouseup", "contextmenu", "touchstart", "touchend", "keydown", "keyup", "wheel", "dragstart", "selectstart"]) {
+    document.addEventListener(ev, swallow, {capture: true, passive: false});
+  }
+  // the first touch or key press takes the page fullscreen (browsers only allow that after a real gesture)
+  const goFull = () => { const d = document.documentElement; const f = d.requestFullscreen || d.webkitRequestFullscreen; if (f && running) { try { f.call(d).catch(() => {}); } catch (e) {} } };
+  for (const ev of ["pointerdown", "keydown", "touchstart"]) document.addEventListener(ev, goFull, {capture: true, once: true});
+  if (CONFIRM_LEAVE) window.addEventListener("beforeunload", e => { if (running) { e.preventDefault(); e.returnValue = ""; } });
+
+  setTimeout(() => {
+    show("black");
+    setTimeout(() => {
+      running = false;
+      show("reveal");
+      if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+    }, BLACK_MS);
+  }, WARN_MS);
+})();
+</script>
+</body>
+</html>
